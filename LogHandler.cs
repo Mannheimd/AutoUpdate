@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Deployment.Application;
 using System.IO;
+using System.Reflection;
 using System.Xml;
 
 namespace Log_Handler
@@ -11,18 +11,31 @@ namespace Log_Handler
         /// Creates a new log entry using the specified severity level
         /// </summary>
         /// <param name="e"></param>
-        /// <param name="severity">
-        /// Using SeverityLevel enumerator.
-        /// </param>
+        /// <param name="severity">Using SeverityLevel enumerator</param>
         /// <param name="subject">A brief description of the event</param>
-        public static async void CreateEntry(Exception e, SeverityLevel severity, string subject)
+        public static void CreateEntry(Exception e, SeverityLevel severity, string subject)
         {
-            // Needs implementing
+            LogEntry logEntry = new LogEntry()
+            {
+                time = DateTime.Now,
+                exception = e,
+                severity = severity,
+                subject = subject
+            };
+
+            LogFile.WriteLogEntry(logEntry);
         }
 
-        public static async void CreateEntry(SeverityLevel severity, string subject)
+        public static void CreateEntry(SeverityLevel severity, string subject)
         {
-            // Needs implementing
+            LogEntry logEntry = new LogEntry()
+            {
+                time = DateTime.Now,
+                severity = severity,
+                subject = subject
+            };
+
+            LogFile.WriteLogEntry(logEntry);
         }
     }
 
@@ -85,7 +98,7 @@ namespace Log_Handler
 
         public static void WriteLogEntry(LogEntry logEntry)
         {
-            XmlDocument logFile = new XmlDocument;
+            XmlDocument logFile = new XmlDocument();
 
             if (!File.Exists(filePath))
             {
@@ -173,6 +186,51 @@ namespace Log_Handler
             XmlElement exceptionFullTextNode = xmlDoc.CreateElement("ExceptionFullText");
             exceptionFullTextNode.InnerText = exception.ToString();
             element.AppendChild(exceptionFullTextNode);
+
+            return element;
+        }
+    }
+
+    class LogSession
+    {
+        public string machineName { get; }
+        public string userName { get; }
+        public DateTime startTime { get; }
+        public Version currentApplicationVersion { get; }
+        public Version currentAutoUpdateDllVersion { get; }
+
+        public LogSession()
+        {
+            machineName = Environment.MachineName;
+            userName = System.Security.Principal.WindowsIdentity.GetCurrent().Name;
+            startTime = DateTime.Now;
+            currentApplicationVersion = Assembly.GetEntryAssembly().GetName().Version;
+            currentAutoUpdateDllVersion = Assembly.LoadFrom("AutoUpdate.dll").GetName().Version;
+        }
+
+        public XmlElement CreateXmlElement(XmlDocument xmlDoc)
+        {
+            XmlElement element = xmlDoc.CreateElement("LogEntry");
+
+            XmlAttribute startTimeAttribute = xmlDoc.CreateAttribute("StartTime");
+            startTimeAttribute.InnerText = startTime.ToString("o");
+            element.Attributes.Append(startTimeAttribute);
+
+            XmlAttribute currentApplicationVersionAttribute = xmlDoc.CreateAttribute("CurrentApplicationVersion");
+            currentApplicationVersionAttribute.InnerText = currentApplicationVersion.ToString();
+            element.Attributes.Append(currentApplicationVersionAttribute);
+
+            XmlAttribute currentAutoUpdateDllVersionAttribute = xmlDoc.CreateAttribute("CurrentAutoUpdateDllVersion");
+            currentAutoUpdateDllVersionAttribute.InnerText = currentApplicationVersion.ToString();
+            element.Attributes.Append(currentAutoUpdateDllVersionAttribute);
+
+            XmlAttribute machineNameAttribute = xmlDoc.CreateAttribute("MachineName");
+            machineNameAttribute.InnerText = currentApplicationVersion.ToString();
+            element.Attributes.Append(machineNameAttribute);
+
+            XmlAttribute userNameAttribute = xmlDoc.CreateAttribute("UserName");
+            userNameAttribute.InnerText = currentApplicationVersion.ToString();
+            element.Attributes.Append(userNameAttribute);
 
             return element;
         }
