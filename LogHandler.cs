@@ -8,7 +8,7 @@ namespace Log_Handler
     class LogHandler
     {
         /// <summary>
-        /// Creates a new log entry using the specified severity level
+        /// Creates a new log entry using the specified severity level and a system exception
         /// </summary>
         /// <param name="e"></param>
         /// <param name="severity">Using SeverityLevel enumerator</param>
@@ -26,6 +26,11 @@ namespace Log_Handler
             LogFile.WriteLogEntry(logEntry);
         }
 
+        /// <summary>
+        /// Creates a new log entry using the specified severity level
+        /// </summary>
+        /// <param name="severity">Using SeverityLevel enumerator</param>
+        /// <param name="subject">A brief description of the event</param>
         public static void CreateEntry(SeverityLevel severity, string subject)
         {
             LogEntry logEntry = new LogEntry()
@@ -179,13 +184,16 @@ namespace Log_Handler
             detailNode.InnerText = detail;
             element.AppendChild(detailNode);
 
-            XmlElement exceptionMessageNode = xmlDoc.CreateElement("ExceptionMessage");
-            exceptionMessageNode.InnerText = exception.Message;
-            element.AppendChild(exceptionMessageNode);
+            if (exception != null)
+            {
+                XmlElement exceptionMessageNode = xmlDoc.CreateElement("ExceptionMessage");
+                exceptionMessageNode.InnerText = exception.Message;
+                element.AppendChild(exceptionMessageNode);
 
-            XmlElement exceptionFullTextNode = xmlDoc.CreateElement("ExceptionFullText");
-            exceptionFullTextNode.InnerText = exception.ToString();
-            element.AppendChild(exceptionFullTextNode);
+                XmlElement exceptionFullTextNode = xmlDoc.CreateElement("ExceptionFullText");
+                exceptionFullTextNode.InnerText = exception.ToString();
+                element.AppendChild(exceptionFullTextNode);
+            }
 
             return element;
         }
