@@ -45,7 +45,7 @@ namespace AutoUpdate
         /// Loads version information from a version file
         /// </summary>
         /// <param name="url">URL of the version file</param>
-        public void Load(string url)
+        public bool Load(string url)
         {
             LogHandler.CreateEntry(SeverityLevel.Debug, "Loading version file from " + url);
 
@@ -57,7 +57,7 @@ namespace AutoUpdate
             catch(Exception e)
             {
                 LogHandler.CreateEntry(e, SeverityLevel.Warn, "Failed to fetch version file from server");
-                return;
+                return false;
             }
 
             LogHandler.CreateEntry(SeverityLevel.Trace, "Finding default channel");
@@ -71,7 +71,7 @@ namespace AutoUpdate
             else
             {
                 LogHandler.CreateEntry(SeverityLevel.Warn, "Failed to find default channel in version file");
-                return;
+                return false;
             }
 
             GetLatestVersion(defaultChannel);
@@ -79,6 +79,7 @@ namespace AutoUpdate
             GetMinimumVersion(defaultChannel);
 
             LogHandler.CreateEntry(SeverityLevel.Trace, "Finished loading version file");
+            return true;
         }
 
         /// <summary>
@@ -86,7 +87,7 @@ namespace AutoUpdate
         /// </summary>
         /// <param name="url">URL of the version file</param>
         /// <param name="channel">Channel to check under</param>
-        public void Load(string url, string channel)
+        public bool Load(string url, string channel)
         {
             LogHandler.CreateEntry(SeverityLevel.Debug, "Loading version file from " + url);
             try
@@ -97,7 +98,7 @@ namespace AutoUpdate
             catch (Exception e)
             {
                 LogHandler.CreateEntry(e, SeverityLevel.Warn, "Failed to fetch version file from server");
-                return;
+                return false;
             }
             
             GetLatestVersion(channel);
@@ -105,6 +106,7 @@ namespace AutoUpdate
             GetMinimumVersion(channel);
             
             LogHandler.CreateEntry(SeverityLevel.Trace, "Finished loading version file");
+            return true;
         }
 
         private void GetLatestVersion(string channel)
@@ -233,28 +235,5 @@ namespace AutoUpdate
             if (versionNode.SelectSingleNode("ManifestFileLocation") != null)
                 manifestFileLocation = versionNode.SelectSingleNode("ManifestFileLocation").Value;
         }
-    }
-
-    enum ChangeStatus
-    {
-        NotStarted,
-        InProgress,
-        Successful,
-        Failed,
-        RevertPending,
-        RevertInProgress,
-        RevertSuccessful,
-        RevertFailed
-    }
-
-    /// <summary>
-    /// Details the type of asset that might be listed in a manifest file
-    /// </summary>
-    enum AssetType
-    {
-        RegistrySubKey,
-        RegistryValue,
-        Folder,
-        File
     }
 }
