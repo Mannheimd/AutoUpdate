@@ -1,19 +1,16 @@
 ﻿using Log_Handler;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Reflection;
 using System.Xml;
 
 namespace AutoUpdate
 {
-    class VersionFile
+    internal class VersionFile
     {
         private XmlDocument versionXml;
 
-        private Version _latestVersion;
-        public Version latestVersion
+        private AvailableVersion _latestVersion;
+        public AvailableVersion latestVersion
         {
             get
             {
@@ -21,8 +18,8 @@ namespace AutoUpdate
             }
         }
 
-        private Version _recommendedVersion;
-        public Version recommendedVersion
+        private AvailableVersion _recommendedVersion;
+        public AvailableVersion recommendedVersion
         {
             get
             {
@@ -30,8 +27,8 @@ namespace AutoUpdate
             }
         }
 
-        private Version _minimumVersion;
-        public Version minimumVersion
+        private AvailableVersion _minimumVersion;
+        public AvailableVersion minimumVersion
         {
             get
             {
@@ -191,9 +188,9 @@ namespace AutoUpdate
         }
     }
 
-    class Version
+    class AvailableVersion
     {
-        public string versionNumber { get; set; }
+        public Version versionNumber { get; set; }
         public DateTime releaseDate { get; set; }
         public string changeLog { get; set; }
         public string targetChannel { get; set; }
@@ -209,7 +206,16 @@ namespace AutoUpdate
             LogHandler.CreateEntry(SeverityLevel.Trace, "Loading version information from XML node");
 
             if (versionNode.SelectSingleNode("VersionNumber") != null)
-                versionNumber = versionNode.SelectSingleNode("VersionNumber").Value;
+            {
+                try
+                {
+                    versionNumber = new Version(versionNode.SelectSingleNode("VersionNumber").Value);
+                }
+                catch
+                {
+                    LogHandler.CreateEntry(SeverityLevel.Error, "Unable to parse version number from string:\n" + versionNode.SelectSingleNode("VersionNumber").Value);
+                }
+            }
 
             if (versionNode.SelectSingleNode("ReleaseDate") != null)
             {
@@ -234,6 +240,47 @@ namespace AutoUpdate
 
             if (versionNode.SelectSingleNode("ManifestFileLocation") != null)
                 manifestFileLocation = versionNode.SelectSingleNode("ManifestFileLocation").Value;
+        }
+    }
+
+    public sealed class UpdateChecker
+    {
+        private static readonly UpdateChecker _instance = new UpdateChecker();
+
+        private static VersionFile versionFile;
+        private static Version currentVersion;
+
+        static UpdateChecker()
+        {
+            currentVersion = Assembly.GetEntryAssembly().GetName().Version;
+        }
+
+        private UpdateChecker()
+        {
+            currentVersion = Assembly.GetEntryAssembly().GetName().Version;
+        }
+
+        public static UpdateChecker instance
+        {
+            get
+            {
+                return _instance;
+            }
+        }
+
+        public static async void CheckForUpdate(string url, string channel)
+        {
+            versionFile.Load(url, channel);
+
+            if (versionFile.minimumVersion.versionNumber > currentVersion)
+            {
+
+            }
+        }
+
+        public static async void CheckForUpdate(string url)
+        {
+
         }
     }
 }
