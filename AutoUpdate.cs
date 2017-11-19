@@ -1,5 +1,7 @@
 ﻿using Log_Handler;
 using System;
+using System.Diagnostics;
+using System.Net;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Xml;
@@ -121,9 +123,9 @@ namespace AutoUpdate
             LogHandler.CreateEntry(SeverityLevel.Trace, "Getting latest version for channel '" + channel + "' from version xml");
 
             string versionNumber = null;
-            if (versionXml.SelectSingleNode("Channels/" + channel + "/LatestVersion") != null)
+            if (versionXml.SelectSingleNode("VersionInfo/Channels/" + channel + "/LatestVersion") != null)
             {
-                versionNumber = versionXml.SelectSingleNode("Channels/" + channel + "/LatestVersion").Value;
+                versionNumber = versionXml.SelectSingleNode("VersionInfo/Channels/" + channel + "/LatestVersion").Value;
                 LogHandler.CreateEntry(SeverityLevel.Trace, "Latest version is " + versionNumber);
             }
             else
@@ -132,9 +134,9 @@ namespace AutoUpdate
                 return;
             }
 
-            if (versionXml.SelectSingleNode("Versions/Version[@VersionNumber='" + versionNumber + "']") != null)
+            if (versionXml.SelectSingleNode("VersionInfo/Versions/Version[@VersionNumber='" + versionNumber + "']") != null)
             {
-                _latestVersion.LoadFromXml(versionXml.SelectSingleNode("Versions/Version[@VersionNumber='" + versionNumber + "']"));
+                _latestVersion.LoadFromXml(versionXml.SelectSingleNode("VersionInfo/Versions/Version[@VersionNumber='" + versionNumber + "']"));
             }
             else
             {
@@ -148,9 +150,9 @@ namespace AutoUpdate
             LogHandler.CreateEntry(SeverityLevel.Trace, "Getting recommended version for channel '" + channel + "' from version xml");
 
             string versionNumber = null;
-            if (versionXml.SelectSingleNode("Channels/" + channel + "/RecommendedVersion") != null)
+            if (versionXml.SelectSingleNode("VersionInfo/Channels/" + channel + "/RecommendedVersion") != null)
             {
-                versionNumber = versionXml.SelectSingleNode("Channels/" + channel + "/RecommendedVersion").Value;
+                versionNumber = versionXml.SelectSingleNode("VersionInfo/Channels/" + channel + "/RecommendedVersion").Value;
                 LogHandler.CreateEntry(SeverityLevel.Trace, "Recommended version is " + versionNumber);
             }
             else
@@ -159,9 +161,9 @@ namespace AutoUpdate
                 return;
             }
 
-            if (versionXml.SelectSingleNode("Versions/Version[@VersionNumber='" + versionNumber + "']") != null)
+            if (versionXml.SelectSingleNode("VersionInfo/Versions/Version[@VersionNumber='" + versionNumber + "']") != null)
             {
-                _recommendedVersion.LoadFromXml(versionXml.SelectSingleNode("Versions/Version[@VersionNumber='" + versionNumber + "']"));
+                _recommendedVersion.LoadFromXml(versionXml.SelectSingleNode("VersionInfo/Versions/Version[@VersionNumber='" + versionNumber + "']"));
             }
             else
             {
@@ -175,9 +177,9 @@ namespace AutoUpdate
             LogHandler.CreateEntry(SeverityLevel.Trace, "Getting minimum version for channel '" + channel + "' from version xml");
 
             string versionNumber = null;
-            if (versionXml.SelectSingleNode("Channels/" + channel + "/MinimumVersion") != null)
+            if (versionXml.SelectSingleNode("VersionInfo/Channels/" + channel + "/MinimumVersion") != null)
             {
-                versionNumber = versionXml.SelectSingleNode("Channels/" + channel + "/MinimumVersion").Value;
+                versionNumber = versionXml.SelectSingleNode("VersionInfo/Channels/" + channel + "/MinimumVersion").Value;
                 LogHandler.CreateEntry(SeverityLevel.Trace, "Minimum version is " + versionNumber);
             }
             else
@@ -186,9 +188,9 @@ namespace AutoUpdate
                 return;
             }
 
-            if (versionXml.SelectSingleNode("Versions/Version[@VersionNumber='" + versionNumber + "']") != null)
+            if (versionXml.SelectSingleNode("VersionInfo/Versions/Version[@VersionNumber='" + versionNumber + "']") != null)
             {
-                _minimumVersion.LoadFromXml(versionXml.SelectSingleNode("Versions/Version[@VersionNumber='" + versionNumber + "']"));
+                _minimumVersion.LoadFromXml(versionXml.SelectSingleNode("VersionInfo/Versions/Version[@VersionNumber='" + versionNumber + "']"));
             }
             else
             {
@@ -275,15 +277,21 @@ namespace AutoUpdate
 
         private static VersionFile versionFile;
         private static Version currentVersion;
+        private static string applicationDirectory;
+        private static string updaterExecutableFilePath;
 
         static UpdateHandler()
         {
             currentVersion = Assembly.GetEntryAssembly().GetName().Version;
+            applicationDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            updaterExecutableFilePath = applicationDirectory + @"\AutoUpdate.exe";
         }
 
         private UpdateHandler()
         {
             currentVersion = Assembly.GetEntryAssembly().GetName().Version;
+            applicationDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            updaterExecutableFilePath = applicationDirectory + @"\AutoUpdate.exe";
         }
 
         public static UpdateHandler instance
@@ -356,6 +364,51 @@ namespace AutoUpdate
 
             LogHandler.CreateEntry(SeverityLevel.Debug, "No update available");
             return new UpdateAvailabilityResponse(UpdateAvailability.NoUpdateAvailable);
+        }
+
+        public static void PerformUpdate(AvailableVersion targetVersion)
+        {
+            if (!DownloadUpdaterExecutable(versionFile.updaterExecutableUrl))
+                return;
+
+            string args = "update " + targetVersion.installFileLocation + " " + targetVersion.manifestFileLocation;
+
+            LogHandler.CreateEntry(SeverityLevel.Info, "Launching " + updaterExecutableFilePath);
+            Process updaterProcess = new Process();
+            updaterProcess.StartInfo.UseShellExecute = false;
+            updaterProcess.StartInfo.FileName = updaterExecutableFilePath;
+            updaterProcess.StartInfo.CreateNoWindow = true;
+            updaterProcess.StartInfo.Arguments = args;
+
+            if (updaterProcess.Start())
+            {
+                LogHandler.CreateEntry(SeverityLevel.Trace, "AutoUpdate.exe started with Process ID " + updaterProcess.Id);
+                LogHandler.CreateEntry(SeverityLevel.Info, "AutoUpdate.exe started correctly, closing application");
+                Environment.Exit(0);
+            }
+            else
+            {
+                LogHandler.CreateEntry(SeverityLevel.Error, "Failed to start AutoUpdate.exe");
+            }
+        }
+
+        private static bool DownloadUpdaterExecutable(string downloadUrl)
+        {
+            using (WebClient client = new WebClient())
+            {
+                try
+                {
+                    LogHandler.CreateEntry(SeverityLevel.Debug, "Fetching updater executable from " + downloadUrl);
+                    client.DownloadFileAsync(new Uri(downloadUrl), updaterExecutableFilePath);
+                    LogHandler.CreateEntry(SeverityLevel.Trace, "Successfully downloaded updated executable");
+                    return true;
+                }
+                catch(Exception e)
+                {
+                    LogHandler.CreateEntry(e, SeverityLevel.Error, "Failed to download updater executable");
+                    return false;
+                }
+            }
         }
     }
 
