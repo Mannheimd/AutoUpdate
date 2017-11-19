@@ -1,6 +1,7 @@
 ﻿using Log_Handler;
 using System;
 using System.Reflection;
+using System.Threading.Tasks;
 using System.Xml;
 
 namespace AutoUpdate
@@ -33,6 +34,15 @@ namespace AutoUpdate
             get
             {
                 return _minimumVersion;
+            }
+        }
+
+        private string _updaterExecutableUrl;
+        public string updaterExecutableUrl
+        {
+            get
+            {
+                return _updaterExecutableUrl;
             }
         }
 
@@ -186,9 +196,25 @@ namespace AutoUpdate
                 return;
             }
         }
+
+        private void GetUpdaterExecutableUrl()
+        {
+            LogHandler.CreateEntry(SeverityLevel.Trace, "Getting updater executable url from version xml");
+            
+            if (versionXml.SelectSingleNode("VersionInfo/UpdaterExecutableUrl") != null)
+            {
+                _updaterExecutableUrl = versionXml.SelectSingleNode("VersionInfo/UpdaterExecutableUrl").Value;
+                LogHandler.CreateEntry(SeverityLevel.Trace, "Updater executable url is " + _updaterExecutableUrl);
+            }
+            else
+            {
+                LogHandler.CreateEntry(SeverityLevel.Warn, "Failed to get updater executable url from version file");
+                return;
+            }
+        }
     }
 
-    class AvailableVersion
+    public class AvailableVersion
     {
         public Version versionNumber { get; set; }
         public DateTime releaseDate { get; set; }
@@ -243,24 +269,24 @@ namespace AutoUpdate
         }
     }
 
-    public sealed class UpdateChecker
+    public sealed class UpdateHandler
     {
-        private static readonly UpdateChecker _instance = new UpdateChecker();
+        private static readonly UpdateHandler _instance = new UpdateHandler();
 
         private static VersionFile versionFile;
         private static Version currentVersion;
 
-        static UpdateChecker()
+        static UpdateHandler()
         {
             currentVersion = Assembly.GetEntryAssembly().GetName().Version;
         }
 
-        private UpdateChecker()
+        private UpdateHandler()
         {
             currentVersion = Assembly.GetEntryAssembly().GetName().Version;
         }
 
-        public static UpdateChecker instance
+        public static UpdateHandler instance
         {
             get
             {
@@ -268,19 +294,109 @@ namespace AutoUpdate
             }
         }
 
-        public static async void CheckForUpdate(string url, string channel)
+        public static UpdateAvailabilityResponse CheckForUpdate(string url, string channel)
         {
-            versionFile.Load(url, channel);
+            LogHandler.CreateEntry(SeverityLevel.Debug, "Checking for updates from '" + url + "' with channel '" + channel);
+
+            if (!versionFile.Load(url, channel))
+            {
+                LogHandler.CreateEntry(SeverityLevel.Warn, "Failed to load version file");
+                return new UpdateAvailabilityResponse(UpdateAvailability.UpdateCheckFailed);
+            }
 
             if (versionFile.minimumVersion.versionNumber > currentVersion)
             {
+                LogHandler.CreateEntry(SeverityLevel.Debug, "Located required upgrade");
+                return new UpdateAvailabilityResponse(versionFile.minimumVersion, UpdateAvailability.UpgradeRequired);
+            }
 
+            if (versionFile.recommendedVersion.versionNumber > currentVersion)
+            {
+                LogHandler.CreateEntry(SeverityLevel.Debug, "Located recommended upgrade");
+                return new UpdateAvailabilityResponse(versionFile.recommendedVersion, UpdateAvailability.UpgradeRecommended);
+            }
+
+            if (versionFile.recommendedVersion.versionNumber < currentVersion)
+            {
+                LogHandler.CreateEntry(SeverityLevel.Debug, "Located recommended downgrade");
+                return new UpdateAvailabilityResponse(versionFile.recommendedVersion, UpdateAvailability.DowngradeRecommended);
+            }
+
+            LogHandler.CreateEntry(SeverityLevel.Debug, "No update available");
+            return new UpdateAvailabilityResponse(UpdateAvailability.NoUpdateAvailable);
+        }
+
+        public static UpdateAvailabilityResponse CheckForUpdate(string url)
+        {
+            LogHandler.CreateEntry(SeverityLevel.Debug, "Checking for updates from '" + url);
+
+            if (!versionFile.Load(url))
+            {
+                LogHandler.CreateEntry(SeverityLevel.Warn, "Failed to load version file");
+                return new UpdateAvailabilityResponse(UpdateAvailability.UpdateCheckFailed);
+            }
+
+            if (versionFile.minimumVersion.versionNumber > currentVersion)
+            {
+                LogHandler.CreateEntry(SeverityLevel.Debug, "Located required upgrade");
+                return new UpdateAvailabilityResponse(versionFile.minimumVersion, UpdateAvailability.UpgradeRequired);
+            }
+
+            if (versionFile.recommendedVersion.versionNumber > currentVersion)
+            {
+                LogHandler.CreateEntry(SeverityLevel.Debug, "Located recommended upgrade");
+                return new UpdateAvailabilityResponse(versionFile.recommendedVersion, UpdateAvailability.UpgradeRecommended);
+            }
+
+            if (versionFile.recommendedVersion.versionNumber < currentVersion)
+            {
+                LogHandler.CreateEntry(SeverityLevel.Debug, "Located recommended downgrade");
+                return new UpdateAvailabilityResponse(versionFile.recommendedVersion, UpdateAvailability.DowngradeRecommended);
+            }
+
+            LogHandler.CreateEntry(SeverityLevel.Debug, "No update available");
+            return new UpdateAvailabilityResponse(UpdateAvailability.NoUpdateAvailable);
+        }
+    }
+
+    public class UpdateAvailabilityResponse
+    {
+        private UpdateAvailability _updateAvailability;
+        public UpdateAvailability updateAvailability
+        {
+            get
+            {
+                return _updateAvailability;
             }
         }
 
-        public static async void CheckForUpdate(string url)
+        private AvailableVersion _newVersion;
+        public AvailableVersion newVersion
         {
-
+            get
+            {
+                return _newVersion;
+            }
         }
+
+        public UpdateAvailabilityResponse(AvailableVersion newVersion, UpdateAvailability updateAvailability)
+        {
+            _newVersion = newVersion;
+            _updateAvailability = updateAvailability;
+        }
+
+        public UpdateAvailabilityResponse(UpdateAvailability updateAvailability)
+        {
+            _updateAvailability = updateAvailability;
+        }
+    }
+
+    public enum UpdateAvailability
+    {
+        NoUpdateAvailable,
+        UpgradeRecommended,
+        UpgradeRequired,
+        DowngradeRecommended,
+        UpdateCheckFailed
     }
 }
