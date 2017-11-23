@@ -3,7 +3,6 @@ using System;
 using System.Diagnostics;
 using System.Net;
 using System.Reflection;
-using System.Threading.Tasks;
 using System.Xml;
 
 namespace AutoUpdate
@@ -47,8 +46,6 @@ namespace AutoUpdate
                 return _updaterExecutableUrl;
             }
         }
-
-        private bool _versionInfoLoaded;
 
         /// <summary>
         /// Loads version information from a version file

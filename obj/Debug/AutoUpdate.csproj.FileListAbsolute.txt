@@ -1,1 +1,7 @@
 G:\Users\Chris\Dropbox\Development\C# Stuff\AutoUpdate\obj\Debug\AutoUpdate.csprojResolveAssemblyReference.cache
+C:\Users\christopher.manders\Documents\Development\Github Repos\AutoUpdate\obj\Debug\AutoUpdate.csprojResolveAssemblyReference.cache
+C:\Users\christopher.manders\Documents\Development\Github Repos\AutoUpdate\obj\Debug\AutoUpdate.csproj.CoreCompileInputs.cache
+C:\Users\christopher.manders\Documents\Development\Github Repos\AutoUpdate\bin\Debug\AutoUpdate.dll
+C:\Users\christopher.manders\Documents\Development\Github Repos\AutoUpdate\bin\Debug\AutoUpdate.pdb
+C:\Users\christopher.manders\Documents\Development\Github Repos\AutoUpdate\obj\Debug\AutoUpdate.dll
+C:\Users\christopher.manders\Documents\Development\Github Repos\AutoUpdate\obj\Debug\AutoUpdate.pdb
