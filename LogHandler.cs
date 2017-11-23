@@ -46,13 +46,14 @@ namespace Log_Handler
 
     class LogFile
     {
+        private static bool isInitialised = false;
         private static string filePath;
         private static LogSession currentSession;
 
-        public LogFile()
+        private static void Initialise()
         {
             string applicationFolder = AppDomain.CurrentDomain.BaseDirectory;
-            filePath = applicationFolder + @"\UpdateLog.xml";
+            filePath = applicationFolder + @"UpdateLog.xml";
         }
 
         private static void CreateLogFile()
@@ -84,12 +85,10 @@ namespace Log_Handler
             }
             catch
             {
-                return;
+
             }
 
-            XmlNode updateLog = logFile.SelectSingleNode("UpdateLog");
-
-            updateLog.AppendChild(currentSession.CreateXmlElement(logFile));
+            logFile.SelectSingleNode("UpdateLog").AppendChild(currentSession.CreateXmlElement(logFile));
 
             try
             {
@@ -97,12 +96,17 @@ namespace Log_Handler
             }
             catch
             {
-
+                
             }
         }
 
         public static void WriteLogEntry(LogEntry logEntry)
         {
+            if (!isInitialised)
+            {
+                Initialise();
+            }
+
             XmlDocument logFile = new XmlDocument();
 
             if (!File.Exists(filePath))
@@ -117,7 +121,7 @@ namespace Log_Handler
                 }
                 catch
                 {
-                    return;
+
                 }
 
                 if (logFile.SelectSingleNode("UpdateLog") == null)
@@ -141,7 +145,7 @@ namespace Log_Handler
 
             }
 
-            XmlNode sessionNode = logFile.SelectSingleNode("UpdateLog/LogSession[@StartTime='" + currentSession.startTime + "']");
+            XmlNode sessionNode = logFile.SelectSingleNode("UpdateLog/LogSession[@StartTime='" + currentSession.startTime.ToString("o") + "']");
 
             sessionNode.AppendChild(logEntry.CreateXmlElement(logFile));
 
@@ -167,34 +171,37 @@ namespace Log_Handler
         public XmlElement CreateXmlElement(XmlDocument xmlDoc)
         {
             XmlElement element = xmlDoc.CreateElement("LogEntry");
-
+            
             XmlAttribute timeAttribute = xmlDoc.CreateAttribute("Time");
             timeAttribute.InnerText = time.ToString("o");
             element.Attributes.Append(timeAttribute);
-
+            
             XmlElement severityNode = xmlDoc.CreateElement("Severity");
             severityNode.InnerText = severity.ToString();
             element.AppendChild(severityNode);
-
+            
             XmlElement subjectNode = xmlDoc.CreateElement("Subject");
             subjectNode.InnerText = subject;
             element.AppendChild(subjectNode);
-
-            XmlElement detailNode = xmlDoc.CreateElement("Detail");
-            detailNode.InnerText = detail;
-            element.AppendChild(detailNode);
+            
+            if (detail != null)
+            {
+                XmlElement detailNode = xmlDoc.CreateElement("Detail");
+                detailNode.InnerText = detail;
+                element.AppendChild(detailNode);
+            }
 
             if (exception != null)
             {
                 XmlElement exceptionMessageNode = xmlDoc.CreateElement("ExceptionMessage");
                 exceptionMessageNode.InnerText = exception.Message;
                 element.AppendChild(exceptionMessageNode);
-
+                
                 XmlElement exceptionFullTextNode = xmlDoc.CreateElement("ExceptionFullText");
                 exceptionFullTextNode.InnerText = exception.ToString();
                 element.AppendChild(exceptionFullTextNode);
             }
-
+            
             return element;
         }
     }
@@ -218,26 +225,26 @@ namespace Log_Handler
 
         public XmlElement CreateXmlElement(XmlDocument xmlDoc)
         {
-            XmlElement element = xmlDoc.CreateElement("LogEntry");
-
+            XmlElement element = xmlDoc.CreateElement("LogSession");
+            
             XmlAttribute startTimeAttribute = xmlDoc.CreateAttribute("StartTime");
             startTimeAttribute.InnerText = startTime.ToString("o");
             element.Attributes.Append(startTimeAttribute);
-
+            
             XmlAttribute currentApplicationVersionAttribute = xmlDoc.CreateAttribute("CurrentApplicationVersion");
             currentApplicationVersionAttribute.InnerText = currentApplicationVersion.ToString();
             element.Attributes.Append(currentApplicationVersionAttribute);
-
+            
             XmlAttribute currentAutoUpdateDllVersionAttribute = xmlDoc.CreateAttribute("CurrentAutoUpdateDllVersion");
-            currentAutoUpdateDllVersionAttribute.InnerText = currentApplicationVersion.ToString();
+            currentAutoUpdateDllVersionAttribute.InnerText = currentAutoUpdateDllVersion.ToString();
             element.Attributes.Append(currentAutoUpdateDllVersionAttribute);
-
+            
             XmlAttribute machineNameAttribute = xmlDoc.CreateAttribute("MachineName");
-            machineNameAttribute.InnerText = currentApplicationVersion.ToString();
+            machineNameAttribute.InnerText = machineName;
             element.Attributes.Append(machineNameAttribute);
-
+            
             XmlAttribute userNameAttribute = xmlDoc.CreateAttribute("UserName");
-            userNameAttribute.InnerText = currentApplicationVersion.ToString();
+            userNameAttribute.InnerText = userName;
             element.Attributes.Append(userNameAttribute);
 
             return element;
