@@ -292,9 +292,9 @@ namespace AutoUpdate
 
         private static VersionFile versionFile;
         private static Version currentVersion;
+        private static AvailableVersion targetVersion;
         private static string applicationDirectory;
         private static string updaterExecutableFilePath;
-        private static bool updaterExecutableDownloadSuccess;
 
         static UpdateHandler()
         {
@@ -418,34 +418,13 @@ namespace AutoUpdate
 
         public void PerformUpdate(AvailableVersion targetVersion)
         {
+            UpdateHandler.targetVersion = targetVersion;
+
             DownloadUpdaterExecutable(versionFile.updaterExecutableUrl);
-            if (!updaterExecutableDownloadSuccess)
-                return;
-
-            string args = "update " + targetVersion.installFileLocation + " " + targetVersion.manifestFileLocation;
-
-            LogHandler.CreateEntry(SeverityLevel.Info, "Launching " + updaterExecutableFilePath);
-            Process updaterProcess = new Process();
-            updaterProcess.StartInfo.UseShellExecute = false;
-            updaterProcess.StartInfo.FileName = updaterExecutableFilePath;
-            updaterProcess.StartInfo.CreateNoWindow = true;
-            updaterProcess.StartInfo.Arguments = args;
-
-            if (updaterProcess.Start())
-            {
-                LogHandler.CreateEntry(SeverityLevel.Trace, "AutoUpdate.exe started with Process ID " + updaterProcess.Id);
-                LogHandler.CreateEntry(SeverityLevel.Info, "AutoUpdate.exe started correctly, closing application");
-                Environment.Exit(0);
-            }
-            else
-            {
-                LogHandler.CreateEntry(SeverityLevel.Error, "Failed to start AutoUpdate.exe");
-            }
         }
 
         private static void DownloadUpdaterExecutable(string downloadUrl)
         {
-            updaterExecutableDownloadSuccess = false;
             LogHandler.CreateEntry(SeverityLevel.Debug, "Fetching updater executable from " + downloadUrl);
             using (WebClient client = new WebClient())
             {
@@ -460,17 +439,34 @@ namespace AutoUpdate
             if (e.Cancelled)
             {
                 LogHandler.CreateEntry(SeverityLevel.Error, "Updater executable download was cancelled");
-                updaterExecutableDownloadSuccess = false;
             }
             else if (e.Error != null)
             {
                 LogHandler.CreateEntry(e.Error, SeverityLevel.Error, "Updater executable download encountered an error");
-                updaterExecutableDownloadSuccess = false;
             }
             else
             {
                 LogHandler.CreateEntry(SeverityLevel.Debug, "Updater executable download was successful");
-                updaterExecutableDownloadSuccess = false;
+
+                string args = "update " + targetVersion.installFileLocation + " " + targetVersion.manifestFileLocation;
+
+                LogHandler.CreateEntry(SeverityLevel.Info, "Launching " + updaterExecutableFilePath);
+                Process updaterProcess = new Process();
+                updaterProcess.StartInfo.UseShellExecute = false;
+                updaterProcess.StartInfo.FileName = updaterExecutableFilePath;
+                updaterProcess.StartInfo.CreateNoWindow = true;
+                updaterProcess.StartInfo.Arguments = args;
+
+                if (updaterProcess.Start())
+                {
+                    LogHandler.CreateEntry(SeverityLevel.Trace, "AutoUpdate.exe started with Process ID " + updaterProcess.Id);
+                    LogHandler.CreateEntry(SeverityLevel.Info, "AutoUpdate.exe started correctly, closing application");
+                    Environment.Exit(0);
+                }
+                else
+                {
+                    LogHandler.CreateEntry(SeverityLevel.Error, "Failed to start AutoUpdate.exe");
+                }
             }
         }
     }
