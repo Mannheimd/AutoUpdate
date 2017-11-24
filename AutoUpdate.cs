@@ -1,5 +1,6 @@
 ﻿using Log_Handler;
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -86,6 +87,7 @@ namespace AutoUpdate
             GetLatestVersion(defaultChannel);
             GetRecommendedVersion(defaultChannel);
             GetMinimumVersion(defaultChannel);
+            GetUpdaterExecutableUrl();
 
             LogHandler.CreateEntry(SeverityLevel.Trace, "Finished loading version file");
             return true;
@@ -116,7 +118,9 @@ namespace AutoUpdate
             GetLatestVersion(channel);
             GetRecommendedVersion(channel);
             GetMinimumVersion(channel);
-            
+            GetUpdaterExecutableUrl();
+
+
             LogHandler.CreateEntry(SeverityLevel.Trace, "Finished loading version file");
             return true;
         }
@@ -290,19 +294,20 @@ namespace AutoUpdate
         private static Version currentVersion;
         private static string applicationDirectory;
         private static string updaterExecutableFilePath;
+        private static bool updaterExecutableDownloadSuccess;
 
         static UpdateHandler()
         {
             currentVersion = Assembly.GetEntryAssembly().GetName().Version;
             applicationDirectory = AppDomain.CurrentDomain.BaseDirectory;
-            updaterExecutableFilePath = applicationDirectory + @"\AutoUpdate.exe";
+            updaterExecutableFilePath = applicationDirectory + @"AutoUpdate.exe";
         }
 
         private UpdateHandler()
         {
             currentVersion = Assembly.GetEntryAssembly().GetName().Version;
             applicationDirectory = AppDomain.CurrentDomain.BaseDirectory;
-            updaterExecutableFilePath = applicationDirectory + @"\AutoUpdate.exe";
+            updaterExecutableFilePath = applicationDirectory + @"AutoUpdate.exe";
         }
 
         public static UpdateHandler instance
@@ -328,22 +333,34 @@ namespace AutoUpdate
                 return new UpdateAvailabilityResponse(UpdateAvailability.UpdateCheckFailed);
             }
 
-            if (versionFile.minimumVersion.versionNumber > currentVersion)
+            if (versionFile.minimumVersion.versionNumber != null)
             {
-                LogHandler.CreateEntry(SeverityLevel.Debug, "Located required upgrade");
-                return new UpdateAvailabilityResponse(versionFile.minimumVersion, UpdateAvailability.UpgradeRequired);
+                LogHandler.CreateEntry(SeverityLevel.Trace, "Comparing minimum version for upgrade");
+                if (versionFile.minimumVersion.versionNumber > currentVersion)
+                {
+                    LogHandler.CreateEntry(SeverityLevel.Debug, "Located required upgrade");
+                    return new UpdateAvailabilityResponse(versionFile.minimumVersion, UpdateAvailability.UpgradeRequired);
+                }
             }
 
-            if (versionFile.recommendedVersion.versionNumber > currentVersion)
+            if (versionFile.recommendedVersion.versionNumber != null)
             {
-                LogHandler.CreateEntry(SeverityLevel.Debug, "Located recommended upgrade");
-                return new UpdateAvailabilityResponse(versionFile.recommendedVersion, UpdateAvailability.UpgradeRecommended);
+                LogHandler.CreateEntry(SeverityLevel.Trace, "Comparing required version for upgrade");
+                if (versionFile.recommendedVersion.versionNumber > currentVersion)
+                {
+                    LogHandler.CreateEntry(SeverityLevel.Debug, "Located recommended upgrade");
+                    return new UpdateAvailabilityResponse(versionFile.recommendedVersion, UpdateAvailability.UpgradeRecommended);
+                }
             }
 
-            if (versionFile.recommendedVersion.versionNumber < currentVersion)
+            if (versionFile.recommendedVersion.versionNumber != null)
             {
-                LogHandler.CreateEntry(SeverityLevel.Debug, "Located recommended downgrade");
-                return new UpdateAvailabilityResponse(versionFile.recommendedVersion, UpdateAvailability.DowngradeRecommended);
+                LogHandler.CreateEntry(SeverityLevel.Trace, "Comparing required version for downgrade");
+                if (versionFile.recommendedVersion.versionNumber < currentVersion)
+                {
+                    LogHandler.CreateEntry(SeverityLevel.Debug, "Located recommended downgrade");
+                    return new UpdateAvailabilityResponse(versionFile.recommendedVersion, UpdateAvailability.DowngradeRecommended);
+                }
             }
 
             LogHandler.CreateEntry(SeverityLevel.Debug, "No update available");
@@ -401,7 +418,8 @@ namespace AutoUpdate
 
         public void PerformUpdate(AvailableVersion targetVersion)
         {
-            if (!DownloadUpdaterExecutable(versionFile.updaterExecutableUrl))
+            DownloadUpdaterExecutable(versionFile.updaterExecutableUrl);
+            if (!updaterExecutableDownloadSuccess)
                 return;
 
             string args = "update " + targetVersion.installFileLocation + " " + targetVersion.manifestFileLocation;
@@ -425,22 +443,34 @@ namespace AutoUpdate
             }
         }
 
-        private static bool DownloadUpdaterExecutable(string downloadUrl)
+        private static void DownloadUpdaterExecutable(string downloadUrl)
         {
+            updaterExecutableDownloadSuccess = false;
+            LogHandler.CreateEntry(SeverityLevel.Debug, "Fetching updater executable from " + downloadUrl);
             using (WebClient client = new WebClient())
             {
-                try
-                {
-                    LogHandler.CreateEntry(SeverityLevel.Debug, "Fetching updater executable from " + downloadUrl);
-                    client.DownloadFileAsync(new Uri(downloadUrl), updaterExecutableFilePath);
-                    LogHandler.CreateEntry(SeverityLevel.Trace, "Successfully downloaded updated executable");
-                    return true;
-                }
-                catch(Exception e)
-                {
-                    LogHandler.CreateEntry(e, SeverityLevel.Error, "Failed to download updater executable");
-                    return false;
-                }
+                client.DownloadFileCompleted += new AsyncCompletedEventHandler(UpdaterExecutable_DownloadComplete);
+                client.DownloadFileAsync(new Uri(downloadUrl), updaterExecutableFilePath);
+            }
+        }
+
+        private static void UpdaterExecutable_DownloadComplete(object sender, AsyncCompletedEventArgs e)
+        {
+            LogHandler.CreateEntry(SeverityLevel.Trace, "Updater executable download task finished");
+            if (e.Cancelled)
+            {
+                LogHandler.CreateEntry(SeverityLevel.Error, "Updater executable download was cancelled");
+                updaterExecutableDownloadSuccess = false;
+            }
+            else if (e.Error != null)
+            {
+                LogHandler.CreateEntry(e.Error, SeverityLevel.Error, "Updater executable download encountered an error");
+                updaterExecutableDownloadSuccess = false;
+            }
+            else
+            {
+                LogHandler.CreateEntry(SeverityLevel.Debug, "Updater executable download was successful");
+                updaterExecutableDownloadSuccess = false;
             }
         }
     }
