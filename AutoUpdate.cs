@@ -452,7 +452,8 @@ namespace AutoUpdate
 
                 LogHandler.CreateEntry(SeverityLevel.Info, "Launching " + updaterExecutableFilePath);
                 Process updaterProcess = new Process();
-                updaterProcess.StartInfo.UseShellExecute = false;
+                updaterProcess.StartInfo.UseShellExecute = true;
+                updaterProcess.StartInfo.Verb = "runas";
                 updaterProcess.StartInfo.FileName = updaterExecutableFilePath;
                 updaterProcess.StartInfo.CreateNoWindow = true;
                 updaterProcess.StartInfo.Arguments = args;
