@@ -1,0 +1,11 @@
+C:\Users\christopher.manders\Documents\Development\Github Repos\AutoUpdate\AutoUpdateExecutable\bin\Debug\AutoUpdateExecutable.exe.config
+C:\Users\christopher.manders\Documents\Development\Github Repos\AutoUpdate\AutoUpdateExecutable\bin\Debug\AutoUpdateExecutable.exe
+C:\Users\christopher.manders\Documents\Development\Github Repos\AutoUpdate\AutoUpdateExecutable\bin\Debug\AutoUpdateExecutable.pdb
+C:\Users\christopher.manders\Documents\Development\Github Repos\AutoUpdate\AutoUpdateExecutable\obj\Debug\AutoUpdateExecutable.csprojResolveAssemblyReference.cache
+C:\Users\christopher.manders\Documents\Development\Github Repos\AutoUpdate\AutoUpdateExecutable\obj\Debug\App.g.cs
+C:\Users\christopher.manders\Documents\Development\Github Repos\AutoUpdate\AutoUpdateExecutable\obj\Debug\AutoUpdateExecutable_MarkupCompile.cache
+C:\Users\christopher.manders\Documents\Development\Github Repos\AutoUpdate\AutoUpdateExecutable\obj\Debug\AutoUpdateExecutable.Properties.Resources.resources
+C:\Users\christopher.manders\Documents\Development\Github Repos\AutoUpdate\AutoUpdateExecutable\obj\Debug\AutoUpdateExecutable.csproj.GenerateResource.Cache
+C:\Users\christopher.manders\Documents\Development\Github Repos\AutoUpdate\AutoUpdateExecutable\obj\Debug\AutoUpdateExecutable.csproj.CoreCompileInputs.cache
+C:\Users\christopher.manders\Documents\Development\Github Repos\AutoUpdate\AutoUpdateExecutable\obj\Debug\AutoUpdateExecutable.exe
+C:\Users\christopher.manders\Documents\Development\Github Repos\AutoUpdate\AutoUpdateExecutable\obj\Debug\AutoUpdateExecutable.pdb
