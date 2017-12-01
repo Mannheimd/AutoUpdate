@@ -20,7 +20,7 @@ namespace AutoUpdateExecutable
         }
     }
 
-    internal class ManifestFile
+    internal class Manifest
     {
         private XmlDocument xmlDocument;
         public Version version;
@@ -371,7 +371,7 @@ namespace AutoUpdateExecutable
         public static string appData;
         public static string desktop;
         public static string startMenu;
-        public static ManifestFile currentManifest;
+        public static Manifest currentManifest;
 
         public static void Load()
         {
@@ -380,7 +380,7 @@ namespace AutoUpdateExecutable
             appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
             startMenu = Environment.GetFolderPath(Environment.SpecialFolder.StartMenu);
-            currentManifest = new ManifestFile();
+            currentManifest = new Manifest();
             currentManifest.Load(applicationDirectory + "InstallManifest.xml");
         }
     }
